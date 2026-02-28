@@ -1,0 +1,63 @@
+@page "/maintenance"
+@using Allors.Database
+@using Allors.Database.Domain
+@using Allors.Services
+@inject IDatabaseService DatabaseService
+
+<PageTitle>Maintenance</PageTitle>
+
+<h1>Maintenance Job Orders</h1>
+
+@if (jobOrders == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="mb-3">
+        <button class="btn btn-primary" @onclick="LoadJobOrders">Refresh</button>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Equipment</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Assigned To</th>
+                <th>Start</th>
+                <th>End</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var order in jobOrders)
+            {
+                <tr>
+                    <td>@order.Name</td>
+                    <td>@order.Equipment?.DisplayName</td>
+                    <td>@order.DispatchStatus?.Name</td>
+                    <td>@order.Priority</td>
+                    <td>@order.AssignedTo?.DisplayName</td>
+                    <td>@order.StartTime?.ToString("g")</td>
+                    <td>@order.EndTime?.ToString("g")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private JobOrder[]? jobOrders;
+
+    protected override void OnInitialized()
+    {
+        LoadJobOrders();
+    }
+
+    private void LoadJobOrders()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        jobOrders = transaction.Extent<JobOrder>().ToArray();
+    }
+}

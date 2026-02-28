@@ -1,0 +1,85 @@
+@page "/definitions"
+@using Allors.Database
+@using Allors.Database.Domain
+@using Allors.Services
+@inject IDatabaseService DatabaseService
+
+<PageTitle>Definitions</PageTitle>
+
+<h1>Operations Definitions &amp; Work Masters</h1>
+
+@if (definitions == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="mb-3">
+        <button class="btn btn-primary" @onclick="LoadDefinitions">Refresh</button>
+    </div>
+
+    <h2>Operations Definitions</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Version</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var def in definitions)
+            {
+                <tr>
+                    <td>@def.Name</td>
+                    <td>@def.OperationsType?.Name</td>
+                    <td>@def.Version</td>
+                    <td>@def.Description</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h2>Work Masters</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Version</th>
+                <th>Duration (min)</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var wm in workMasters ?? Array.Empty<WorkMaster>())
+            {
+                <tr>
+                    <td>@wm.Name</td>
+                    <td>@wm.WorkType?.Name</td>
+                    <td>@wm.Version</td>
+                    <td>@wm.Duration</td>
+                    <td>@wm.Description</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private OperationsDefinition[]? definitions;
+    private WorkMaster[]? workMasters;
+
+    protected override void OnInitialized()
+    {
+        LoadDefinitions();
+    }
+
+    private void LoadDefinitions()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        definitions = transaction.Extent<OperationsDefinition>().ToArray();
+        workMasters = transaction.Extent<WorkMaster>().ToArray();
+    }
+}

@@ -1,0 +1,59 @@
+@page "/equipment"
+@using Allors.Database
+@using Allors.Database.Domain
+@using Allors.Services
+@inject IDatabaseService DatabaseService
+
+<PageTitle>Equipment</PageTitle>
+
+<h1>Equipment Hierarchy</h1>
+
+@if (equipment == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="mb-3">
+        <button class="btn btn-primary" @onclick="LoadEquipment">Refresh</button>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Level</th>
+                <th>Display Name</th>
+                <th>Classes</th>
+                <th>Physical Asset</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in equipment)
+            {
+                <tr>
+                    <td>@item.Name</td>
+                    <td>@item.EquipmentLevel?.Name</td>
+                    <td>@item.DisplayName</td>
+                    <td>@(item.EquipmentClasses != null ? string.Join(", ", item.EquipmentClasses.Select(c => c.Name)) : "")</td>
+                    <td>@item.PhysicalAsset?.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private Equipment[]? equipment;
+
+    protected override void OnInitialized()
+    {
+        LoadEquipment();
+    }
+
+    private void LoadEquipment()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        equipment = transaction.Extent<Equipment>().ToArray();
+    }
+}

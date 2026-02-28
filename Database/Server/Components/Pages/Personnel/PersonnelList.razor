@@ -1,0 +1,79 @@
+@page "/personnel"
+@using Allors.Database
+@using Allors.Database.Domain
+@using Allors.Services
+@inject IDatabaseService DatabaseService
+
+<PageTitle>Personnel</PageTitle>
+
+<h1>Personnel</h1>
+
+@if (persons == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="mb-3">
+        <button class="btn btn-primary" @onclick="LoadPersonnel">Refresh</button>
+    </div>
+
+    <h2>Personnel Classes</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var pc in personnelClasses ?? Array.Empty<PersonnelClass>())
+            {
+                <tr>
+                    <td>@pc.Name</td>
+                    <td>@pc.Description</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h2>Persons</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Display Name</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Roles</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var person in persons)
+            {
+                <tr>
+                    <td>@person.DisplayName</td>
+                    <td>@person.FirstName</td>
+                    <td>@person.LastName</td>
+                    <td>@(person.PersonnelClasses != null ? string.Join(", ", person.PersonnelClasses.Select(c => c.Name)) : "")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private Person[]? persons;
+    private PersonnelClass[]? personnelClasses;
+
+    protected override void OnInitialized()
+    {
+        LoadPersonnel();
+    }
+
+    private void LoadPersonnel()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        persons = transaction.Extent<Person>().ToArray();
+        personnelClasses = transaction.Extent<PersonnelClass>().ToArray();
+    }
+}

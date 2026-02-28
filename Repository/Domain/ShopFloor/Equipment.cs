@@ -1,0 +1,115 @@
+namespace Allors.Repository
+{
+    using System;
+
+    using Attributes;
+    using static Workspaces;
+
+    #region Allors
+    [Id("a1b2c3d4-0004-4000-8000-000000000001")]
+    #endregion
+    [Plural("Equipments")]
+    public partial class Equipment : UniquelyIdentifiable, Deletable
+    {
+        #region inherited properties
+        public Guid UniqueId { get; set; }
+
+        public Revocation[] Revocations { get; set; }
+
+        public SecurityToken[] SecurityTokens { get; set; }
+
+        #endregion
+
+        #region Allors
+        [Id("a1b2c3d4-0004-4000-8000-000000000011")]
+        #endregion
+        [Indexed]
+        [Required]
+        [Size(256)]
+        [Workspace(Default)]
+        public string Name { get; set; }
+
+        #region Allors
+        [Id("a1b2c3d4-0004-4000-8000-000000000012")]
+        #endregion
+        [Size(1024)]
+        [Workspace(Default)]
+        public string Description { get; set; }
+
+        #region Allors
+        [Id("a1b2c3d4-0004-4000-8000-000000000013")]
+        #endregion
+        [Multiplicity(Multiplicity.ManyToOne)]
+        [Indexed]
+        [Workspace(Default)]
+        public EquipmentLevel EquipmentLevel { get; set; }
+
+        #region Allors
+        [Id("a1b2c3d4-0004-4000-8000-000000000014")]
+        #endregion
+        [Multiplicity(Multiplicity.ManyToMany)]
+        [Indexed]
+        [Workspace(Default)]
+        public EquipmentClass[] EquipmentClasses { get; set; }
+
+        #region Allors
+        [Id("a1b2c3d4-0004-4000-8000-000000000015")]
+        #endregion
+        [Multiplicity(Multiplicity.OneToMany)]
+        [Indexed]
+        [Workspace(Default)]
+        public EquipmentProperty[] EquipmentProperties { get; set; }
+
+        #region Allors
+        [Id("a1b2c3d4-0004-4000-8000-000000000016")]
+        #endregion
+        [Multiplicity(Multiplicity.OneToMany)]
+        [Indexed]
+        [Workspace(Default)]
+        public Equipment[] EquipmentChildren { get; set; }
+
+        #region Allors
+        [Id("a1b2c3d4-0004-4000-8000-000000000017")]
+        #endregion
+        [Multiplicity(Multiplicity.ManyToOne)]
+        [Indexed]
+        [Workspace(Default)]
+        public Equipment EquipmentParent { get; set; }
+
+        #region Allors
+        [Id("a1b2c3d4-0004-4000-8000-000000000018")]
+        #endregion
+        [Multiplicity(Multiplicity.ManyToOne)]
+        [Indexed]
+        [Workspace(Default)]
+        public PhysicalAsset PhysicalAsset { get; set; }
+
+        #region Allors
+        [Id("a1b2c3d4-0004-4000-8000-000000000019")]
+        #endregion
+        [Multiplicity(Multiplicity.ManyToOne)]
+        [Indexed]
+        [Workspace(Default)]
+        public HierarchyScope HierarchyScope { get; set; }
+
+        #region Allors
+        [Id("a1b2c3d4-0004-4000-8000-00000000001a")]
+        #endregion
+        [Size(512)]
+        [Derived]
+        [Workspace(Default)]
+        public string DisplayName { get; set; }
+
+        #region inherited methods
+        public void OnBuild() { }
+
+        public void OnPostBuild() { }
+
+        public void OnInit() { }
+
+        public void OnPostDerive() { }
+
+        public void Delete() { }
+        #endregion
+    }
+}

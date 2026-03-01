@@ -3,6 +3,8 @@
 @using Allors.Database.Domain
 @using Allors.Services
 @inject IDatabaseService DatabaseService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>Equipment</PageTitle>
 
@@ -14,15 +16,21 @@
 }
 else
 {
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadEquipment" Class="mb-4">Refresh</MudButton>
+    <MudTextField @bind-Value="_searchString" Placeholder="Search..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mb-4" />
 
-    <MudTable Items="equipment" Hover="true" Striped="true" Elevation="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateEquipment">New</MudButton>
+    </MudStack>
+
+    <MudTable Items="equipment" Hover="true" Striped="true" Elevation="2" Filter="new Func<Equipment, bool>(FilterEquipment)">
         <HeaderContent>
             <MudTh>Name</MudTh>
             <MudTh>Level</MudTh>
             <MudTh>Display Name</MudTh>
             <MudTh>Classes</MudTh>
             <MudTh>Physical Asset</MudTh>
+            <MudTh Style="width: 120px;">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Name">@context.Name</MudTd>
@@ -30,12 +38,17 @@ else
             <MudTd DataLabel="Display Name">@context.DisplayName</MudTd>
             <MudTd DataLabel="Classes">@(context.EquipmentClasses != null ? string.Join(", ", context.EquipmentClasses.Select(c => c.Name)) : "")</MudTd>
             <MudTd DataLabel="Physical Asset">@context.PhysicalAsset?.Name</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditEquipment(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteEquipment(context))" />
+            </MudTd>
         </RowTemplate>
     </MudTable>
 }
 
 @code {
     private Equipment[]? equipment;
+    private string _searchString = "";
 
     protected override void OnInitialized()
     {
@@ -46,5 +59,67 @@ else
     {
         using var transaction = DatabaseService.Database.CreateTransaction();
         equipment = transaction.Extent<Equipment>().ToArray();
+    }
+
+    private bool FilterEquipment(Equipment item)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        return (item.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.DisplayName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.EquipmentLevel?.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.PhysicalAsset?.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private async Task CreateEquipment()
+    {
+        var dialog = await DialogService.ShowAsync<EquipmentDialog>("New Equipment");
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            LoadEquipment();
+            Snackbar.Add("Equipment created.", Severity.Success);
+        }
+    }
+
+    private async Task EditEquipment(Equipment item)
+    {
+        var parameters = new DialogParameters<EquipmentDialog>
+        {
+            { x => x.EquipmentId, item.UniqueId }
+        };
+        var dialog = await DialogService.ShowAsync<EquipmentDialog>("Edit Equipment", parameters);
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            LoadEquipment();
+            Snackbar.Add("Equipment updated.", Severity.Success);
+        }
+    }
+
+    private async Task DeleteEquipment(Equipment item)
+    {
+        var parameters = new DialogParameters<DeleteConfirmDialog>
+        {
+            { x => x.Name, item.DisplayName ?? item.Name ?? "this equipment" }
+        };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmDialog>("Confirm Delete", parameters);
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            try
+            {
+                using var transaction = DatabaseService.Database.CreateTransaction();
+                var entity = transaction.Extent<Equipment>().First(v => v.UniqueId == item.UniqueId);
+                entity.Delete();
+                transaction.Derive();
+                transaction.Commit();
+                LoadEquipment();
+                Snackbar.Add("Equipment deleted.", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
     }
 }

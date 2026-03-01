@@ -1,0 +1,163 @@
+@using Allors.Database
+@using Allors.Database.Domain
+@using Allors.Services
+@inject IDatabaseService DatabaseService
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Name" Required="true" RequiredError="Name is required" Class="mb-3" />
+        <MudTextField @bind-Value="_description" Label="Description" Lines="3" Class="mb-3" />
+        <MudSelect T="Guid?" @bind-Value="_workTypeId" Label="Work Type" Required="true" RequiredError="Work Type is required" Class="mb-3">
+            @foreach (var type in _allWorkTypes)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)type.UniqueId)">@type.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="Guid?" @bind-Value="_dispatchStatusId" Label="Status" Required="true" RequiredError="Status is required" Class="mb-3">
+            @foreach (var status in _allStatuses)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)status.UniqueId)">@status.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="Guid?" @bind-Value="_equipmentId" Label="Equipment" Clearable="true" Class="mb-3">
+            @foreach (var eq in _allEquipment)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)eq.UniqueId)">@(eq.DisplayName ?? eq.Name)</MudSelectItem>
+            }
+        </MudSelect>
+        <MudNumericField @bind-Value="_priority" Label="Priority" Min="0" Class="mb-3" />
+        <MudDatePicker @bind-Date="_startDate" Label="Start Date" Class="mb-3" />
+        <MudTimePicker @bind-Time="_startTime" Label="Start Time" Class="mb-3" />
+        <MudDatePicker @bind-Date="_endDate" Label="End Date" Class="mb-3" />
+        <MudTimePicker @bind-Time="_endTime" Label="End Time" Class="mb-3" />
+        <MudSelect T="Guid?" @bind-Value="_assignedToId" Label="Assigned To" Clearable="true" Class="mb-3">
+            @foreach (var person in _allPersons)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)person.UniqueId)">@(person.DisplayName ?? $"{person.FirstName} {person.LastName}")</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="Guid?" @bind-Value="_workMasterId" Label="Work Master" Clearable="true">
+            @foreach (var wm in _allWorkMasters)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)wm.UniqueId)">@wm.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@(string.IsNullOrWhiteSpace(_name) || !_workTypeId.HasValue || !_dispatchStatusId.HasValue)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid? JobOrderId { get; set; }
+
+    private string _name = "";
+    private string _description = "";
+    private Guid? _workTypeId;
+    private Guid? _dispatchStatusId;
+    private Guid? _equipmentId;
+    private int? _priority;
+    private DateTime? _startDate;
+    private TimeSpan? _startTime;
+    private DateTime? _endDate;
+    private TimeSpan? _endTime;
+    private Guid? _assignedToId;
+    private Guid? _workMasterId;
+
+    private OperationsType[] _allWorkTypes = [];
+    private DispatchStatus[] _allStatuses = [];
+    private Equipment[] _allEquipment = [];
+    private Person[] _allPersons = [];
+    private WorkMaster[] _allWorkMasters = [];
+
+    // Default "Waiting" status UniqueId
+    private static readonly Guid WaitingStatusId = new("b0000003-0001-4000-8000-000000000001");
+
+    protected override void OnInitialized()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        _allWorkTypes = transaction.Extent<OperationsType>().ToArray();
+        _allStatuses = transaction.Extent<DispatchStatus>().ToArray();
+        _allEquipment = transaction.Extent<Equipment>().ToArray();
+        _allPersons = transaction.Extent<Person>().ToArray();
+        _allWorkMasters = transaction.Extent<WorkMaster>().ToArray();
+
+        if (JobOrderId.HasValue)
+        {
+            var item = transaction.Extent<JobOrder>().First(v => v.UniqueId == JobOrderId.Value);
+            _name = item.Name ?? "";
+            _description = item.Description ?? "";
+            _workTypeId = item.WorkType?.UniqueId;
+            _dispatchStatusId = item.DispatchStatus?.UniqueId;
+            _equipmentId = item.Equipment?.UniqueId;
+            _priority = item.Priority;
+            _assignedToId = item.AssignedTo?.UniqueId;
+            _workMasterId = item.WorkMaster?.UniqueId;
+
+            if (item.StartTime.HasValue)
+            {
+                _startDate = item.StartTime.Value.Date;
+                _startTime = item.StartTime.Value.TimeOfDay;
+            }
+            if (item.EndTime.HasValue)
+            {
+                _endDate = item.EndTime.Value.Date;
+                _endTime = item.EndTime.Value.TimeOfDay;
+            }
+        }
+        else
+        {
+            _dispatchStatusId = WaitingStatusId;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        JobOrder item;
+        if (JobOrderId.HasValue)
+        {
+            item = transaction.Extent<JobOrder>().First(v => v.UniqueId == JobOrderId.Value);
+        }
+        else
+        {
+            item = transaction.Build<JobOrder>();
+        }
+
+        item.Name = _name;
+        item.Description = string.IsNullOrWhiteSpace(_description) ? null : _description;
+        item.WorkType = _workTypeId.HasValue
+            ? transaction.Extent<OperationsType>().First(v => v.UniqueId == _workTypeId.Value)
+            : null;
+        item.DispatchStatus = _dispatchStatusId.HasValue
+            ? transaction.Extent<DispatchStatus>().First(v => v.UniqueId == _dispatchStatusId.Value)
+            : null;
+        item.Equipment = _equipmentId.HasValue
+            ? transaction.Extent<Equipment>().First(v => v.UniqueId == _equipmentId.Value)
+            : null;
+        item.Priority = _priority ?? 0;
+        item.StartTime = _startDate.HasValue
+            ? _startDate.Value.Date + (_startTime ?? TimeSpan.Zero)
+            : null;
+        item.EndTime = _endDate.HasValue
+            ? _endDate.Value.Date + (_endTime ?? TimeSpan.Zero)
+            : null;
+        item.AssignedTo = _assignedToId.HasValue
+            ? transaction.Extent<Person>().First(v => v.UniqueId == _assignedToId.Value)
+            : null;
+        item.WorkMaster = _workMasterId.HasValue
+            ? transaction.Extent<WorkMaster>().First(v => v.UniqueId == _workMasterId.Value)
+            : null;
+
+        transaction.Derive();
+        transaction.Commit();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

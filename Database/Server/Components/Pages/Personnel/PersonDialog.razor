@@ -1,0 +1,83 @@
+@using Allors.Database
+@using Allors.Database.Domain
+@using Allors.Services
+@inject IDatabaseService DatabaseService
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_firstName" Label="First Name" Class="mb-3" />
+        <MudTextField @bind-Value="_lastName" Label="Last Name" Class="mb-3" />
+        <MudSelect T="Guid" Label="Personnel Classes" MultiSelection="true"
+                   @bind-SelectedValues="_selectedClassIds"
+                   ToStringFunc="@(id => _allClasses.FirstOrDefault(c => c.UniqueId == id)?.Name ?? "")">
+            @foreach (var cls in _allClasses)
+            {
+                <MudSelectItem T="Guid" Value="@cls.UniqueId">@cls.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid? PersonId { get; set; }
+
+    private string _firstName = "";
+    private string _lastName = "";
+    private IReadOnlyCollection<Guid> _selectedClassIds = new HashSet<Guid>();
+    private PersonnelClass[] _allClasses = [];
+
+    protected override void OnInitialized()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        _allClasses = transaction.Extent<PersonnelClass>().ToArray();
+
+        if (PersonId.HasValue)
+        {
+            var item = transaction.Extent<Person>().First(v => v.UniqueId == PersonId.Value);
+            _firstName = item.FirstName ?? "";
+            _lastName = item.LastName ?? "";
+            _selectedClassIds = (IReadOnlyCollection<Guid>)(item.PersonnelClasses?.Select(c => c.UniqueId).ToHashSet() ?? new HashSet<Guid>());
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        Person item;
+        if (PersonId.HasValue)
+        {
+            item = transaction.Extent<Person>().First(v => v.UniqueId == PersonId.Value);
+        }
+        else
+        {
+            item = transaction.Build<Person>();
+        }
+
+        item.FirstName = string.IsNullOrWhiteSpace(_firstName) ? null : _firstName;
+        item.LastName = string.IsNullOrWhiteSpace(_lastName) ? null : _lastName;
+
+        foreach (var existing in item.PersonnelClasses?.ToArray() ?? [])
+        {
+            item.RemovePersonnelClass(existing);
+        }
+        foreach (var classId in _selectedClassIds)
+        {
+            var cls = transaction.Extent<PersonnelClass>().First(v => v.UniqueId == classId);
+            item.AddPersonnelClass(cls);
+        }
+
+        transaction.Derive();
+        transaction.Commit();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

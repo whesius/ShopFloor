@@ -1,0 +1,131 @@
+@using Allors.Database
+@using Allors.Database.Domain
+@using Allors.Services
+@inject IDatabaseService DatabaseService
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Name" Required="true" RequiredError="Name is required" Class="mb-3" />
+        <MudTextField @bind-Value="_description" Label="Description" Lines="3" Class="mb-3" />
+        <MudSelect T="Guid?" @bind-Value="_equipmentLevelId" Label="Equipment Level" Clearable="true" Class="mb-3">
+            @foreach (var level in _allLevels)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)level.UniqueId)">@level.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="Guid?" @bind-Value="_parentId" Label="Parent Equipment" Clearable="true" Class="mb-3">
+            @foreach (var eq in _availableParents)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)eq.UniqueId)">@(eq.DisplayName ?? eq.Name)</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="Guid" Label="Equipment Classes" MultiSelection="true"
+                   @bind-SelectedValues="_selectedClassIds"
+                   ToStringFunc="@(id => _allClasses.FirstOrDefault(c => c.UniqueId == id)?.Name ?? "")"
+                   Class="mb-3">
+            @foreach (var cls in _allClasses)
+            {
+                <MudSelectItem T="Guid" Value="@cls.UniqueId">@cls.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="Guid?" @bind-Value="_physicalAssetId" Label="Physical Asset" Clearable="true">
+            @foreach (var asset in _allAssets)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)asset.UniqueId)">@asset.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@string.IsNullOrWhiteSpace(_name)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid? EquipmentId { get; set; }
+
+    private string _name = "";
+    private string _description = "";
+    private Guid? _equipmentLevelId;
+    private Guid? _parentId;
+    private IReadOnlyCollection<Guid> _selectedClassIds = new HashSet<Guid>();
+    private Guid? _physicalAssetId;
+
+    private EquipmentLevel[] _allLevels = [];
+    private Equipment[] _availableParents = [];
+    private EquipmentClass[] _allClasses = [];
+    private PhysicalAsset[] _allAssets = [];
+
+    protected override void OnInitialized()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        _allLevels = transaction.Extent<EquipmentLevel>().ToArray();
+        _allClasses = transaction.Extent<EquipmentClass>().ToArray();
+        _allAssets = transaction.Extent<PhysicalAsset>().ToArray();
+
+        var allEquipment = transaction.Extent<Equipment>().ToArray();
+        _availableParents = EquipmentId.HasValue
+            ? allEquipment.Where(e => e.UniqueId != EquipmentId.Value).ToArray()
+            : allEquipment;
+
+        if (EquipmentId.HasValue)
+        {
+            var item = allEquipment.First(v => v.UniqueId == EquipmentId.Value);
+            _name = item.Name ?? "";
+            _description = item.Description ?? "";
+            _equipmentLevelId = item.EquipmentLevel?.UniqueId;
+            _parentId = item.EquipmentParent?.UniqueId;
+            _selectedClassIds = (IReadOnlyCollection<Guid>)(item.EquipmentClasses?.Select(c => c.UniqueId).ToHashSet() ?? new HashSet<Guid>());
+            _physicalAssetId = item.PhysicalAsset?.UniqueId;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        Equipment item;
+        if (EquipmentId.HasValue)
+        {
+            item = transaction.Extent<Equipment>().First(v => v.UniqueId == EquipmentId.Value);
+        }
+        else
+        {
+            item = transaction.Build<Equipment>();
+        }
+
+        item.Name = _name;
+        item.Description = string.IsNullOrWhiteSpace(_description) ? null : _description;
+
+        item.EquipmentLevel = _equipmentLevelId.HasValue
+            ? transaction.Extent<EquipmentLevel>().First(v => v.UniqueId == _equipmentLevelId.Value)
+            : null;
+
+        item.EquipmentParent = _parentId.HasValue
+            ? transaction.Extent<Equipment>().First(v => v.UniqueId == _parentId.Value)
+            : null;
+
+        foreach (var existing in item.EquipmentClasses?.ToArray() ?? [])
+        {
+            item.RemoveEquipmentClass(existing);
+        }
+        foreach (var classId in _selectedClassIds)
+        {
+            var cls = transaction.Extent<EquipmentClass>().First(v => v.UniqueId == classId);
+            item.AddEquipmentClass(cls);
+        }
+
+        item.PhysicalAsset = _physicalAssetId.HasValue
+            ? transaction.Extent<PhysicalAsset>().First(v => v.UniqueId == _physicalAssetId.Value)
+            : null;
+
+        transaction.Derive();
+        transaction.Commit();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

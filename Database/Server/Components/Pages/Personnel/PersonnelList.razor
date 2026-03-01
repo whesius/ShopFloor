@@ -3,6 +3,8 @@
 @using Allors.Database.Domain
 @using Allors.Services
 @inject IDatabaseService DatabaseService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>Personnel</PageTitle>
 
@@ -14,33 +16,51 @@
 }
 else
 {
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadPersonnel" Class="mb-4">Refresh</MudButton>
+    <MudTextField @bind-Value="_searchString" Placeholder="Search..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mb-4" />
 
-    <MudText Typo="Typo.h5" GutterBottom="true">Personnel Classes</MudText>
-    <MudTable Items="personnelClasses ?? Array.Empty<PersonnelClass>()" Hover="true" Striped="true" Elevation="2" Class="mb-6">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudText Typo="Typo.h5">Personnel Classes</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreatePersonnelClass">New</MudButton>
+    </MudStack>
+    <MudTable Items="personnelClasses ?? Array.Empty<PersonnelClass>()" Hover="true" Striped="true" Elevation="2" Class="mb-6" Filter="new Func<PersonnelClass, bool>(FilterPersonnelClass)">
         <HeaderContent>
             <MudTh>Name</MudTh>
             <MudTh>Description</MudTh>
+            <MudTh Style="width: 120px;">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Name">@context.Name</MudTd>
             <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditPersonnelClass(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeletePersonnelClass(context))" />
+            </MudTd>
         </RowTemplate>
     </MudTable>
 
-    <MudText Typo="Typo.h5" GutterBottom="true">Persons</MudText>
-    <MudTable Items="persons" Hover="true" Striped="true" Elevation="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudText Typo="Typo.h5">Persons</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreatePerson">New</MudButton>
+    </MudStack>
+    <MudTable Items="persons" Hover="true" Striped="true" Elevation="2" Filter="new Func<Person, bool>(FilterPerson)">
         <HeaderContent>
             <MudTh>Display Name</MudTh>
             <MudTh>First Name</MudTh>
             <MudTh>Last Name</MudTh>
             <MudTh>Roles</MudTh>
+            <MudTh Style="width: 120px;">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Display Name">@context.DisplayName</MudTd>
             <MudTd DataLabel="First Name">@context.FirstName</MudTd>
             <MudTd DataLabel="Last Name">@context.LastName</MudTd>
             <MudTd DataLabel="Roles">@(context.PersonnelClasses != null ? string.Join(", ", context.PersonnelClasses.Select(c => c.Name)) : "")</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditPerson(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeletePerson(context))" />
+            </MudTd>
         </RowTemplate>
     </MudTable>
 }
@@ -48,6 +68,7 @@ else
 @code {
     private Person[]? persons;
     private PersonnelClass[]? personnelClasses;
+    private string _searchString = "";
 
     protected override void OnInitialized()
     {
@@ -59,5 +80,126 @@ else
         using var transaction = DatabaseService.Database.CreateTransaction();
         persons = transaction.Extent<Person>().ToArray();
         personnelClasses = transaction.Extent<PersonnelClass>().ToArray();
+    }
+
+    private bool FilterPersonnelClass(PersonnelClass item)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        return (item.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.Description?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private bool FilterPerson(Person item)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        return (item.FirstName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.LastName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.DisplayName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private async Task CreatePersonnelClass()
+    {
+        var dialog = await DialogService.ShowAsync<PersonnelClassDialog>("New Personnel Class");
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            LoadPersonnel();
+            Snackbar.Add("Personnel class created.", Severity.Success);
+        }
+    }
+
+    private async Task EditPersonnelClass(PersonnelClass item)
+    {
+        var parameters = new DialogParameters<PersonnelClassDialog>
+        {
+            { x => x.PersonnelClassId, item.UniqueId }
+        };
+        var dialog = await DialogService.ShowAsync<PersonnelClassDialog>("Edit Personnel Class", parameters);
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            LoadPersonnel();
+            Snackbar.Add("Personnel class updated.", Severity.Success);
+        }
+    }
+
+    private async Task DeletePersonnelClass(PersonnelClass item)
+    {
+        var parameters = new DialogParameters<DeleteConfirmDialog>
+        {
+            { x => x.Name, item.Name ?? "this class" }
+        };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmDialog>("Confirm Delete", parameters);
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            try
+            {
+                using var transaction = DatabaseService.Database.CreateTransaction();
+                var entity = transaction.Extent<PersonnelClass>().First(v => v.UniqueId == item.UniqueId);
+                entity.Delete();
+                transaction.Derive();
+                transaction.Commit();
+                LoadPersonnel();
+                Snackbar.Add("Personnel class deleted.", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task CreatePerson()
+    {
+        var dialog = await DialogService.ShowAsync<PersonDialog>("New Person");
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            LoadPersonnel();
+            Snackbar.Add("Person created.", Severity.Success);
+        }
+    }
+
+    private async Task EditPerson(Person item)
+    {
+        var parameters = new DialogParameters<PersonDialog>
+        {
+            { x => x.PersonId, item.UniqueId }
+        };
+        var dialog = await DialogService.ShowAsync<PersonDialog>("Edit Person", parameters);
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            LoadPersonnel();
+            Snackbar.Add("Person updated.", Severity.Success);
+        }
+    }
+
+    private async Task DeletePerson(Person item)
+    {
+        var parameters = new DialogParameters<DeleteConfirmDialog>
+        {
+            { x => x.Name, item.DisplayName ?? "this person" }
+        };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmDialog>("Confirm Delete", parameters);
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            try
+            {
+                using var transaction = DatabaseService.Database.CreateTransaction();
+                var entity = transaction.Extent<Person>().First(v => v.UniqueId == item.UniqueId);
+                entity.Delete();
+                transaction.Derive();
+                transaction.Commit();
+                LoadPersonnel();
+                Snackbar.Add("Person deleted.", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
     }
 }

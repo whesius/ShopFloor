@@ -3,6 +3,8 @@
 @using Allors.Database.Domain
 @using Allors.Services
 @inject IDatabaseService DatabaseService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>Maintenance</PageTitle>
 
@@ -14,9 +16,14 @@
 }
 else
 {
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadJobOrders" Class="mb-4">Refresh</MudButton>
+    <MudTextField @bind-Value="_searchString" Placeholder="Search..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mb-4" />
 
-    <MudTable Items="jobOrders" Hover="true" Striped="true" Elevation="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateJobOrder">New</MudButton>
+    </MudStack>
+
+    <MudTable Items="jobOrders" Hover="true" Striped="true" Elevation="2" Filter="new Func<JobOrder, bool>(FilterJobOrder)">
         <HeaderContent>
             <MudTh>Name</MudTh>
             <MudTh>Equipment</MudTh>
@@ -25,21 +32,29 @@ else
             <MudTh>Assigned To</MudTh>
             <MudTh>Start</MudTh>
             <MudTh>End</MudTh>
+            <MudTh Style="width: 120px;">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Name">@context.Name</MudTd>
             <MudTd DataLabel="Equipment">@context.Equipment?.DisplayName</MudTd>
-            <MudTd DataLabel="Status">@context.DispatchStatus?.Name</MudTd>
+            <MudTd DataLabel="Status">
+                <MudChip T="string" Color="@GetStatusColor(context.DispatchStatus?.Name)" Size="Size.Small">@context.DispatchStatus?.Name</MudChip>
+            </MudTd>
             <MudTd DataLabel="Priority">@context.Priority</MudTd>
             <MudTd DataLabel="Assigned To">@context.AssignedTo?.DisplayName</MudTd>
             <MudTd DataLabel="Start">@context.StartTime?.ToString("g")</MudTd>
             <MudTd DataLabel="End">@context.EndTime?.ToString("g")</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditJobOrder(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteJobOrder(context))" />
+            </MudTd>
         </RowTemplate>
     </MudTable>
 }
 
 @code {
     private JobOrder[]? jobOrders;
+    private string _searchString = "";
 
     protected override void OnInitialized()
     {
@@ -50,5 +65,77 @@ else
     {
         using var transaction = DatabaseService.Database.CreateTransaction();
         jobOrders = transaction.Extent<JobOrder>().ToArray();
+    }
+
+    private bool FilterJobOrder(JobOrder item)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        return (item.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.Equipment?.DisplayName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.DispatchStatus?.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.AssignedTo?.DisplayName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private static Color GetStatusColor(string? status) => status switch
+    {
+        "Dispatched" or "Ready" => Color.Info,
+        "Running" => Color.Warning,
+        "Completed" or "Closed" => Color.Success,
+        "Cancelled" or "Aborted" => Color.Error,
+        "Held" or "Suspended" => Color.Dark,
+        _ => Color.Default,
+    };
+
+    private async Task CreateJobOrder()
+    {
+        var dialog = await DialogService.ShowAsync<JobOrderDialog>("New Job Order");
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            LoadJobOrders();
+            Snackbar.Add("Job order created.", Severity.Success);
+        }
+    }
+
+    private async Task EditJobOrder(JobOrder item)
+    {
+        var parameters = new DialogParameters<JobOrderDialog>
+        {
+            { x => x.JobOrderId, item.UniqueId }
+        };
+        var dialog = await DialogService.ShowAsync<JobOrderDialog>("Edit Job Order", parameters);
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            LoadJobOrders();
+            Snackbar.Add("Job order updated.", Severity.Success);
+        }
+    }
+
+    private async Task DeleteJobOrder(JobOrder item)
+    {
+        var parameters = new DialogParameters<DeleteConfirmDialog>
+        {
+            { x => x.Name, item.Name ?? "this job order" }
+        };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmDialog>("Confirm Delete", parameters);
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            try
+            {
+                using var transaction = DatabaseService.Database.CreateTransaction();
+                var entity = transaction.Extent<JobOrder>().First(v => v.UniqueId == item.UniqueId);
+                entity.Delete();
+                transaction.Derive();
+                transaction.Commit();
+                LoadJobOrders();
+                Snackbar.Add("Job order deleted.", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
     }
 }

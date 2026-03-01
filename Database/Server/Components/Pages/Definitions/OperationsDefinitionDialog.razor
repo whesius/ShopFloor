@@ -1,0 +1,78 @@
+@using Allors.Database
+@using Allors.Database.Domain
+@using Allors.Services
+@inject IDatabaseService DatabaseService
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Name" Required="true" RequiredError="Name is required" Class="mb-3" />
+        <MudTextField @bind-Value="_description" Label="Description" Lines="3" Class="mb-3" />
+        <MudTextField @bind-Value="_version" Label="Version" Class="mb-3" />
+        <MudSelect T="Guid?" @bind-Value="_operationsTypeId" Label="Operations Type" Required="true" RequiredError="Operations Type is required">
+            @foreach (var type in _allTypes)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)type.UniqueId)">@type.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@(string.IsNullOrWhiteSpace(_name) || !_operationsTypeId.HasValue)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid? OperationsDefinitionId { get; set; }
+
+    private string _name = "";
+    private string _description = "";
+    private string _version = "";
+    private Guid? _operationsTypeId;
+    private OperationsType[] _allTypes = [];
+
+    protected override void OnInitialized()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        _allTypes = transaction.Extent<OperationsType>().ToArray();
+
+        if (OperationsDefinitionId.HasValue)
+        {
+            var item = transaction.Extent<OperationsDefinition>().First(v => v.UniqueId == OperationsDefinitionId.Value);
+            _name = item.Name ?? "";
+            _description = item.Description ?? "";
+            _version = item.Version ?? "";
+            _operationsTypeId = item.OperationsType?.UniqueId;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        OperationsDefinition item;
+        if (OperationsDefinitionId.HasValue)
+        {
+            item = transaction.Extent<OperationsDefinition>().First(v => v.UniqueId == OperationsDefinitionId.Value);
+        }
+        else
+        {
+            item = transaction.Build<OperationsDefinition>();
+        }
+
+        item.Name = _name;
+        item.Description = string.IsNullOrWhiteSpace(_description) ? null : _description;
+        item.Version = string.IsNullOrWhiteSpace(_version) ? null : _version;
+        item.OperationsType = _operationsTypeId.HasValue
+            ? transaction.Extent<OperationsType>().First(v => v.UniqueId == _operationsTypeId.Value)
+            : null;
+
+        transaction.Derive();
+        transaction.Commit();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

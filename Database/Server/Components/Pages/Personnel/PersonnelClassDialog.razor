@@ -1,0 +1,59 @@
+@using Allors.Database
+@using Allors.Database.Domain
+@using Allors.Services
+@inject IDatabaseService DatabaseService
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Name" Required="true" RequiredError="Name is required" Class="mb-3" />
+        <MudTextField @bind-Value="_description" Label="Description" Lines="3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@string.IsNullOrWhiteSpace(_name)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid? PersonnelClassId { get; set; }
+
+    private string _name = "";
+    private string _description = "";
+
+    protected override void OnInitialized()
+    {
+        if (PersonnelClassId.HasValue)
+        {
+            using var transaction = DatabaseService.Database.CreateTransaction();
+            var item = transaction.Extent<PersonnelClass>().First(v => v.UniqueId == PersonnelClassId.Value);
+            _name = item.Name ?? "";
+            _description = item.Description ?? "";
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        PersonnelClass item;
+        if (PersonnelClassId.HasValue)
+        {
+            item = transaction.Extent<PersonnelClass>().First(v => v.UniqueId == PersonnelClassId.Value);
+        }
+        else
+        {
+            item = transaction.Build<PersonnelClass>();
+        }
+
+        item.Name = _name;
+        item.Description = string.IsNullOrWhiteSpace(_description) ? null : _description;
+        transaction.Derive();
+        transaction.Commit();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

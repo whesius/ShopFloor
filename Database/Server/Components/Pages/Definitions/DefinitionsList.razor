@@ -3,6 +3,8 @@
 @using Allors.Database.Domain
 @using Allors.Services
 @inject IDatabaseService DatabaseService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>Definitions</PageTitle>
 
@@ -14,32 +16,46 @@
 }
 else
 {
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadDefinitions" Class="mb-4">Refresh</MudButton>
+    <MudTextField @bind-Value="_searchString" Placeholder="Search..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mb-4" />
 
-    <MudText Typo="Typo.h5" GutterBottom="true">Operations Definitions</MudText>
-    <MudTable Items="definitions" Hover="true" Striped="true" Elevation="2" Class="mb-6">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudText Typo="Typo.h5">Operations Definitions</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateDefinition">New</MudButton>
+    </MudStack>
+    <MudTable Items="definitions" Hover="true" Striped="true" Elevation="2" Class="mb-6" Filter="new Func<OperationsDefinition, bool>(FilterDefinition)">
         <HeaderContent>
             <MudTh>Name</MudTh>
             <MudTh>Type</MudTh>
             <MudTh>Version</MudTh>
             <MudTh>Description</MudTh>
+            <MudTh Style="width: 120px;">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Name">@context.Name</MudTd>
             <MudTd DataLabel="Type">@context.OperationsType?.Name</MudTd>
             <MudTd DataLabel="Version">@context.Version</MudTd>
             <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditDefinition(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteDefinition(context))" />
+            </MudTd>
         </RowTemplate>
     </MudTable>
 
-    <MudText Typo="Typo.h5" GutterBottom="true">Work Masters</MudText>
-    <MudTable Items="workMasters ?? Array.Empty<WorkMaster>()" Hover="true" Striped="true" Elevation="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudText Typo="Typo.h5">Work Masters</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateWorkMaster">New</MudButton>
+    </MudStack>
+    <MudTable Items="workMasters ?? Array.Empty<WorkMaster>()" Hover="true" Striped="true" Elevation="2" Filter="new Func<WorkMaster, bool>(FilterWorkMaster)">
         <HeaderContent>
             <MudTh>Name</MudTh>
             <MudTh>Type</MudTh>
             <MudTh>Version</MudTh>
             <MudTh>Duration (min)</MudTh>
             <MudTh>Description</MudTh>
+            <MudTh Style="width: 120px;">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Name">@context.Name</MudTd>
@@ -47,6 +63,10 @@ else
             <MudTd DataLabel="Version">@context.Version</MudTd>
             <MudTd DataLabel="Duration (min)">@context.Duration</MudTd>
             <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditWorkMaster(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteWorkMaster(context))" />
+            </MudTd>
         </RowTemplate>
     </MudTable>
 }
@@ -54,6 +74,7 @@ else
 @code {
     private OperationsDefinition[]? definitions;
     private WorkMaster[]? workMasters;
+    private string _searchString = "";
 
     protected override void OnInitialized()
     {
@@ -65,5 +86,129 @@ else
         using var transaction = DatabaseService.Database.CreateTransaction();
         definitions = transaction.Extent<OperationsDefinition>().ToArray();
         workMasters = transaction.Extent<WorkMaster>().ToArray();
+    }
+
+    private bool FilterDefinition(OperationsDefinition item)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        return (item.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.OperationsType?.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.Version?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.Description?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private bool FilterWorkMaster(WorkMaster item)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        return (item.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.WorkType?.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.Version?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (item.Description?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private async Task CreateDefinition()
+    {
+        var dialog = await DialogService.ShowAsync<OperationsDefinitionDialog>("New Operations Definition");
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            LoadDefinitions();
+            Snackbar.Add("Operations definition created.", Severity.Success);
+        }
+    }
+
+    private async Task EditDefinition(OperationsDefinition item)
+    {
+        var parameters = new DialogParameters<OperationsDefinitionDialog>
+        {
+            { x => x.OperationsDefinitionId, item.UniqueId }
+        };
+        var dialog = await DialogService.ShowAsync<OperationsDefinitionDialog>("Edit Operations Definition", parameters);
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            LoadDefinitions();
+            Snackbar.Add("Operations definition updated.", Severity.Success);
+        }
+    }
+
+    private async Task DeleteDefinition(OperationsDefinition item)
+    {
+        var parameters = new DialogParameters<DeleteConfirmDialog>
+        {
+            { x => x.Name, item.Name ?? "this definition" }
+        };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmDialog>("Confirm Delete", parameters);
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            try
+            {
+                using var transaction = DatabaseService.Database.CreateTransaction();
+                var entity = transaction.Extent<OperationsDefinition>().First(v => v.UniqueId == item.UniqueId);
+                entity.Delete();
+                transaction.Derive();
+                transaction.Commit();
+                LoadDefinitions();
+                Snackbar.Add("Operations definition deleted.", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task CreateWorkMaster()
+    {
+        var dialog = await DialogService.ShowAsync<WorkMasterDialog>("New Work Master");
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            LoadDefinitions();
+            Snackbar.Add("Work master created.", Severity.Success);
+        }
+    }
+
+    private async Task EditWorkMaster(WorkMaster item)
+    {
+        var parameters = new DialogParameters<WorkMasterDialog>
+        {
+            { x => x.WorkMasterId, item.UniqueId }
+        };
+        var dialog = await DialogService.ShowAsync<WorkMasterDialog>("Edit Work Master", parameters);
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            LoadDefinitions();
+            Snackbar.Add("Work master updated.", Severity.Success);
+        }
+    }
+
+    private async Task DeleteWorkMaster(WorkMaster item)
+    {
+        var parameters = new DialogParameters<DeleteConfirmDialog>
+        {
+            { x => x.Name, item.Name ?? "this work master" }
+        };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmDialog>("Confirm Delete", parameters);
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+        {
+            try
+            {
+                using var transaction = DatabaseService.Database.CreateTransaction();
+                var entity = transaction.Extent<WorkMaster>().First(v => v.UniqueId == item.UniqueId);
+                entity.Delete();
+                transaction.Derive();
+                transaction.Commit();
+                LoadDefinitions();
+                Snackbar.Add("Work master deleted.", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
     }
 }

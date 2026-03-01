@@ -1,0 +1,96 @@
+@using Allors.Database
+@using Allors.Database.Domain
+@using Allors.Services
+@inject IDatabaseService DatabaseService
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Name" Required="true" RequiredError="Name is required" Class="mb-3" />
+        <MudTextField @bind-Value="_description" Label="Description" Lines="3" Class="mb-3" />
+        <MudTextField @bind-Value="_version" Label="Version" Class="mb-3" />
+        <MudSelect T="Guid?" @bind-Value="_workTypeId" Label="Work Type" Required="true" RequiredError="Work Type is required" Class="mb-3">
+            @foreach (var type in _allTypes)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)type.UniqueId)">@type.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudNumericField @bind-Value="_duration" Label="Duration (min)" Min="0" Class="mb-3" />
+        <MudSelect T="Guid?" @bind-Value="_operationsDefinitionId" Label="Operations Definition" Clearable="true">
+            @foreach (var def in _allDefinitions)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)def.UniqueId)">@def.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@(string.IsNullOrWhiteSpace(_name) || !_workTypeId.HasValue)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid? WorkMasterId { get; set; }
+
+    private string _name = "";
+    private string _description = "";
+    private string _version = "";
+    private Guid? _workTypeId;
+    private int? _duration;
+    private Guid? _operationsDefinitionId;
+
+    private OperationsType[] _allTypes = [];
+    private OperationsDefinition[] _allDefinitions = [];
+
+    protected override void OnInitialized()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        _allTypes = transaction.Extent<OperationsType>().ToArray();
+        _allDefinitions = transaction.Extent<OperationsDefinition>().ToArray();
+
+        if (WorkMasterId.HasValue)
+        {
+            var item = transaction.Extent<WorkMaster>().First(v => v.UniqueId == WorkMasterId.Value);
+            _name = item.Name ?? "";
+            _description = item.Description ?? "";
+            _version = item.Version ?? "";
+            _workTypeId = item.WorkType?.UniqueId;
+            _duration = item.Duration;
+            _operationsDefinitionId = item.OperationsDefinition?.UniqueId;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save()
+    {
+        using var transaction = DatabaseService.Database.CreateTransaction();
+        WorkMaster item;
+        if (WorkMasterId.HasValue)
+        {
+            item = transaction.Extent<WorkMaster>().First(v => v.UniqueId == WorkMasterId.Value);
+        }
+        else
+        {
+            item = transaction.Build<WorkMaster>();
+        }
+
+        item.Name = _name;
+        item.Description = string.IsNullOrWhiteSpace(_description) ? null : _description;
+        item.Version = string.IsNullOrWhiteSpace(_version) ? null : _version;
+        item.WorkType = _workTypeId.HasValue
+            ? transaction.Extent<OperationsType>().First(v => v.UniqueId == _workTypeId.Value)
+            : null;
+        item.Duration = _duration ?? 0;
+        item.OperationsDefinition = _operationsDefinitionId.HasValue
+            ? transaction.Extent<OperationsDefinition>().First(v => v.UniqueId == _operationsDefinitionId.Value)
+            : null;
+
+        transaction.Derive();
+        transaction.Commit();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

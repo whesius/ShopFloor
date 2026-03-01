@@ -7,20 +7,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MudBlazor" Version="9.0.0" />
     <PackageReference Include="Npgsql" Version="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\System\Configuration\Allors.Configuration\Allors.Configuration.csproj" />
-    <ProjectReference Include="..\..\..\System\Database\Adapters\Allors.Database.Builder\Allors.Database.Builder.csproj" />
+    <ProjectReference Include="..\..\System\Configuration\Allors.Configuration\Allors.Configuration.csproj" />
+    <ProjectReference Include="..\..\System\Database\Adapters\Allors.Database.Builder\Allors.Database.Builder.csproj" />
     <ProjectReference Include="..\Configuration\Configuration.csproj" />
     <ProjectReference Include="..\Meta\Meta.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\..\Core\Database\Server\Core\Services\ClaimsPrincipal\*.cs" />
-    <Compile Include="..\..\..\Core\Database\Server\Core\Services\Database\IDatabaseService.cs" />
-    <Compile Include="..\..\..\Core\Database\Server\Core\Services\Transaction\*.cs" />
+    <Compile Include="..\..\Core\Database\Server\Core\Services\ClaimsPrincipal\*.cs" />
+    <Compile Include="..\..\Core\Database\Server\Core\Services\Database\IDatabaseService.cs" />
+    <Compile Include="..\..\Core\Database\Server\Core\Services\Transaction\*.cs" />
   </ItemGroup>
 
 </Project>

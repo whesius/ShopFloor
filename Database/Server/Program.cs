@@ -1,3 +1,4 @@
+using MudBlazor.Services;
 using Allors.Database;
 using Allors.Database.Adapters;
 using Allors.Database.Configuration;
@@ -28,7 +29,12 @@ var database = databaseBuilder.Build();
 // Register Allors services
 builder.Services.AddSingleton<IDatabase>(database);
 builder.Services.AddSingleton<IDatabaseService>(new DatabaseService(database));
+builder.Services.AddScoped<IClaimsPrincipalService, ClaimsPrincipalService>();
+builder.Services.AddScoped<CircuitHandler, ClaimsPrincipalCircuitHandler>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
+
+// Add MudBlazor
+builder.Services.AddMudServices();
 
 // Add Blazor
 builder.Services.AddRazorComponents()
@@ -42,7 +48,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();

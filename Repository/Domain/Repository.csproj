@@ -5,12 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\System\Shared\Allors.Shared.csproj" />
+    <ProjectReference Include="..\..\System\Shared\Allors.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\..\System\Repository\Attributes\Attributes*\**\*.cs" />
-    <Compile Include="..\..\..\Core\Repository\Domain\Core*\**\*.cs" />
+    <Compile Include="..\..\System\Repository\Attributes\Attributes*\**\*.cs" />
+    <Compile Include="..\..\Core\Repository\Domain\Core*\**\*.cs" />
   </ItemGroup>
 
 </Project>

@@ -16,10 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\..\Core\Database\Configuration\Core*\**\*.cs" />
-    <Compile Include="..\..\..\CoreCustom\Database\Configuration\Custom\Database\DatabaseServices.cs" />
-    <Compile Include="..\..\..\CoreCustom\Database\Configuration\Custom\Database\DefaultDatabaseServices.cs" />
-    <Compile Include="..\..\..\CoreCustom\Database\Configuration\Custom\Transaction\TransactionServices.cs" />
+    <Compile Include="..\..\Core\Database\Configuration\Core*\**\*.cs" />
+    <Compile Include="..\..\CoreCustom\Database\Configuration\Custom\Database\DatabaseServices.cs" />
+    <Compile Include="..\..\CoreCustom\Database\Configuration\Custom\Database\DefaultDatabaseServices.cs" />
+    <Compile Include="..\..\CoreCustom\Database\Configuration\Custom\Transaction\TransactionServices.cs" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>default</LangVersion>
+    <!-- CA1716: Reserved keyword naming - intentional for query DSL (And, Or, Not, Select, etc.) -->
+    <!-- CA1036: IComparable operators - not required for these meta types -->
+    <!-- CA1822: Static members - MetaBuilder methods designed as instance for extensibility -->
+    <!-- CA1051: Protected fields - required for subclass access in meta type hierarchy -->
+    <!-- Repository Domain naming conventions (DDD-style, intentional): -->
+    <!-- CA1707: Underscore naming in domain definitions -->
+    <!-- CA1715: Interface 'I' prefix omitted for domain concept names -->
+    <!-- CA1711: 'Permission' suffix in domain naming -->
+    <!-- CA1720: Type names in identifiers as part of domain language -->
+    <!-- CA1050: Repository structure uses intentional namespace organization -->
+    <NoWarn>$(NoWarn);CA1716;CA1036;CA1822;CA1051;CA1707;CA1715;CA1711;CA1720;CA1050</NoWarn>
+  </PropertyGroup>
+
+  <!-- Test project relaxed rules -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests')) Or $(MSBuildProjectName.EndsWith('Test'))">
+    <!-- CA1861: Constant array allocations acceptable in tests -->
+    <!-- CA2201: Generic exceptions acceptable in tests -->
+    <!-- CS0168: Unused variables in test setup acceptable -->
+    <NoWarn>$(NoWarn);CA1861;CA2201;CS0168</NoWarn>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,211 @@
+group AllorsCSharpRepository;
+
+TemplateId() ::= <<14F49218-A676-43ba-9CBD-B8FFA059D1BF>>
+TemplateName() ::= <<Allors C# Meta>>
+TemplateVersion() ::= <<1.0.8>>
+TemplateAllors() ::= <<1.0>>
+TemplateConfiguration(repository) ::= <<
+$!
+Copyright 2002-2021 Allors bvba.
+
+Dual Licensed under
+  a) the Lesser General Public Licence v3 (LGPL)
+  b) the Allors License
+
+The LGPL License is included in the file lgpl.txt.
+The Allors License is an addendum to your contract.
+
+Allors Platform is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+For more information visit http://www.allors.com/legal
+!$
+<generations>
+        <generation template="m" output="m.g.cs"/>
+        <generation template="units" output="units.g.cs"/>
+        <generation template="interfaces" output="interfaces.g.cs"/>
+        <generation template="classes" output="classes.g.cs"/>
+        <generation template="associationTypes" output="associationTypes.g.cs"/>
+        <generation template="roleTypes" output="roleTypes.g.cs"/>
+</generations>
+>>
+
+m(repository) ::= <<
+namespace Allors.Database.Meta
+{
+    public partial interface M : IMetaPopulation {
+$repository.Units:{unit|$m_unit(unit)$}; separator="\n"$
+$repository.Interfaces:{interface|$m_interface(interface)$}; separator="\n"$
+$repository.Classes:{class|$m_class(class)$}; separator="\n"$
+    }
+}
+>>
+
+m_unit(unit) ::= <<
+        $unit.SingularName$ $unit.SingularName$ { get; }
+>>
+
+m_interface(interface) ::= <<
+        $interface.SingularName$ $interface.SingularName$ { get; }
+>>
+
+m_class(class) ::= <<
+        $class.SingularName$ $class.SingularName$ { get; }
+>>
+
+units(repository) ::= <<
+namespace Allors.Database.Meta
+{
+$repository.Units:{unit|$define_unit(unit)$}; separator="\n"$
+}
+>>
+
+define_unit(unit) ::= <<
+    public interface $unit.SingularName$ : IUnit
+    {
+    }
+>>
+
+interfaces(repository) ::= <<
+namespace Allors.Database.Meta
+{
+$repository.Interfaces:{interface|$define_interface(interface)$}; separator="\n"$
+}
+>>
+
+define_interface(interface) ::= <<
+    public partial interface $interface.SingularName$ : IInterface {
+
+        M M { get; }
+
+        $interface.Subtypes:{subtype|$define_subtype(subtype)$}; separator="\n"$
+
+        $interface.DefinedProperties:{property|$define_propertyType(property)$}; separator="\n"$
+
+        $interface.InheritedProperties:{property|$define_inheritedpropertyType(property)$}; separator="\n"$
+
+        $interface.DefinedReverseProperties:{property|$define_reversepropertyType(property)$}; separator="\n"$
+
+        $interface.InheritedReverseProperties:{property|$define_inheritedreversepropertyType(property)$}; separator="\n"$
+
+        $interface.DefinedMethods:{method|$define_methodType(method)$}; separator="\n"$
+
+        $interface.InheritedMethods:{method|$define_methodType(method)$}; separator="\n"$
+    }
+>>
+
+classes(repository) ::= <<
+namespace Allors.Database.Meta
+{
+$repository.Classes:{class|$define_class(class)$}; separator="\n"$
+}
+>>
+
+define_class(class) ::= <<
+    public partial interface $class.SingularName$ : IClass {
+
+        M M { get; }
+
+        $class.DefinedProperties:{property|$define_propertyType(property)$}; separator="\n"$
+
+        $class.InheritedProperties:{property|$define_inheritedpropertyType(property)$}; separator="\n"$
+
+        $class.DefinedReverseProperties:{property|$define_reversepropertyType(property)$}; separator="\n"$
+
+        $class.InheritedReverseProperties:{property|$define_inheritedreversepropertyType(property)$}; separator="\n"$
+
+        $class.DefinedMethods:{method|$define_methodType(method)$}; separator="\n"$
+
+        $class.InheritedMethods:{method|$define_methodType(method)$}; separator="\n"$
+    }
+>>
+
+associationTypes(repository) ::= <<
+namespace Allors.Database.Meta
+{
+$repository.Composites:{composite|$define_associationTypes(composite)$}; separator="\n"$
+}
+>>
+
+define_associationTypes(composite) ::= <<
+$composite.DefinedProperties:{property|$define_associationType(property)$}; separator="\n"$
+>>
+
+define_associationType(property) ::= <<
+    public interface $property.AssociationName$ : IAssociationType
+    {
+        new $property.DefiningType.SingularName$ ObjectType { get; }
+    }
+>>
+
+roleTypes(repository) ::= <<
+namespace Allors.Database.Meta
+{
+$repository.Composites:{composite|$define_roleTypes(composite)$}; separator="\n"$
+}
+>>
+
+define_roleTypes(composite) ::= <<
+$composite.DefinedProperties:{property|$define_roleType(property)$}; separator="\n"$
+>>
+
+define_roleType(property) ::= <<
+    public interface $property.DefiningType.SingularName$$property.RoleName$ : I$if(property.DefiningType.IsClass)$Class$else$Interface$endif$RoleType
+    {
+$if(property.Type.IsComposite)$
+        new public $property.Type.SingularName$ ObjectType { get; }
+$endif$
+    }
+
+$if(property.DefiningType.IsInterface)$
+$property.DefiningType.Subclasses:{class|$define_classroleType(class,property)$}; separator="\n"$
+$endif$
+
+>>
+
+define_classroleType(class, property) ::= <<
+/*
+    public interface $class.SingularName$$property.RoleName$ : IClassRoleType
+    {
+        public $class.SingularName$$property.RoleName$(InterfaceRoleType interfaceRoleType) : base(interfaceRoleType)
+        {
+        }
+$if(property.Type.IsComposite)$
+        new $property.Type.SingularName$ ObjectType => this.M.$property.Type.SingularName$;
+$endif$
+    }
+*/
+>>
+
+define_subtype(subtype) ::= <<
+        $subtype.SingularName$ As$subtype.SingularName$ { get; }
+>>
+
+define_propertyType(property) ::= <<
+        $property.DefiningType.SingularName$$property.RoleName$ $property.RoleName$ { get; }
+>>
+
+define_inheritedpropertyType(property) ::= <<
+ $if(property.DefiningProperty)$
+        $property.DefiningProperty.DefiningType.SingularName$$property.DefiningProperty.RoleName$ $property.DefiningProperty.RoleName$ { get; }
+ $else$
+        $property.DefiningType.SingularName$$property.RoleName$ $property.RoleName$ { get; }
+ $endif$
+>>
+
+define_reversepropertyType(property) ::= <<
+        $property.AssociationName$ $property.AssociationName$ { get; }
+>>
+
+define_inheritedreversepropertyType(property) ::= <<
+        $property.AssociationName$ $property.AssociationName$ { get; }
+>>
+
+define_methodType(method) ::= <<
+        IMethodType $method.Name$ { get; }
+>>
+
+boolean(value) ::= "$if(value)$true$else$false$endif$"
+

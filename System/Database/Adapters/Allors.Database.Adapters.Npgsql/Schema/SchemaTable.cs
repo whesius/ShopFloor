@@ -1,0 +1,34 @@
+// <copyright file="SchemaTable.cs" company="Allors bvba">
+// Copyright (c) Allors bvba. All rights reserved.
+// Licensed under the LGPL license. See LICENSE file in the project root for full license information.
+// </copyright>
+
+namespace Allors.Database.Adapters.Npgsql.Npgsql
+{
+    using System.Collections.Generic;
+
+    public class SchemaTable
+    {
+        public SchemaTable(Schema schema, string name)
+        {
+            this.Schema = schema;
+            this.Name = name;
+
+            this.ColumnByName = new Dictionary<string, SchemaTableColumn>();
+        }
+
+        public string Name { get; }
+
+        public Dictionary<string, SchemaTableColumn> ColumnByName { get; }
+
+        public Schema Schema { get; }
+
+        public SchemaTableColumn GetColumn(string columnName)
+        {
+            this.ColumnByName.TryGetValue(columnName, out var tableColumn);
+            return tableColumn;
+        }
+
+        public override string ToString() => this.Name;
+    }
+}

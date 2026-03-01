@@ -2,36 +2,41 @@
 
 <PageTitle>ShopFloor</PageTitle>
 
-<h1>ShopFloor - ISA-95 Manufacturing Operations</h1>
+<MudText Typo="Typo.h4" GutterBottom="true">ShopFloor - ISA-95 Manufacturing Operations</MudText>
+<MudText Typo="Typo.body1" Class="mb-6">Welcome to ShopFloor, a manufacturing execution system built on Allors3 and the ISA-95 (IEC 62264) standard.</MudText>
 
-<p>Welcome to ShopFloor, a manufacturing execution system built on Allors3 and the ISA-95 (IEC 62264) standard.</p>
-
-<div class="row mt-4">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Equipment</h5>
-                <p class="card-text">Manage your equipment hierarchy from Enterprise down to Work Units. Configure equipment properties and map physical assets.</p>
-                <a href="equipment" class="btn btn-primary">View Equipment</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Maintenance</h5>
-                <p class="card-text">Create and track maintenance job orders. Dispatch work, record completions, and track personnel and material actuals.</p>
-                <a href="maintenance" class="btn btn-primary">View Maintenance</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Personnel</h5>
-                <p class="card-text">Manage personnel classes (roles) and individual persons. Assign qualifications and track who is available for work.</p>
-                <a href="personnel" class="btn btn-primary">View Personnel</a>
-            </div>
-        </div>
-    </div>
-</div>
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.h6">Equipment</MudText>
+                <MudText Typo="Typo.body2">Manage your equipment hierarchy from Enterprise down to Work Units. Configure equipment properties and map physical assets.</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="equipment">View Equipment</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.h6">Maintenance</MudText>
+                <MudText Typo="Typo.body2">Create and track maintenance job orders. Dispatch work, record completions, and track personnel and material actuals.</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="maintenance">View Maintenance</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.h6">Personnel</MudText>
+                <MudText Typo="Typo.body2">Manage personnel classes (roles) and individual persons. Assign qualifications and track who is available for work.</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="personnel">View Personnel</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>

@@ -6,65 +6,49 @@
 
 <PageTitle>Definitions</PageTitle>
 
-<h1>Operations Definitions &amp; Work Masters</h1>
+<MudText Typo="Typo.h4" GutterBottom="true">Operations Definitions &amp; Work Masters</MudText>
 
 @if (definitions == null)
 {
-    <p><em>Loading...</em></p>
+    <MudProgressCircular Indeterminate="true" />
 }
 else
 {
-    <div class="mb-3">
-        <button class="btn btn-primary" @onclick="LoadDefinitions">Refresh</button>
-    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadDefinitions" Class="mb-4">Refresh</MudButton>
 
-    <h2>Operations Definitions</h2>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Version</th>
-                <th>Description</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var def in definitions)
-            {
-                <tr>
-                    <td>@def.Name</td>
-                    <td>@def.OperationsType?.Name</td>
-                    <td>@def.Version</td>
-                    <td>@def.Description</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <MudText Typo="Typo.h5" GutterBottom="true">Operations Definitions</MudText>
+    <MudTable Items="definitions" Hover="true" Striped="true" Elevation="2" Class="mb-6">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Version</MudTh>
+            <MudTh>Description</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Type">@context.OperationsType?.Name</MudTd>
+            <MudTd DataLabel="Version">@context.Version</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+        </RowTemplate>
+    </MudTable>
 
-    <h2>Work Masters</h2>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Version</th>
-                <th>Duration (min)</th>
-                <th>Description</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var wm in workMasters ?? Array.Empty<WorkMaster>())
-            {
-                <tr>
-                    <td>@wm.Name</td>
-                    <td>@wm.WorkType?.Name</td>
-                    <td>@wm.Version</td>
-                    <td>@wm.Duration</td>
-                    <td>@wm.Description</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <MudText Typo="Typo.h5" GutterBottom="true">Work Masters</MudText>
+    <MudTable Items="workMasters ?? Array.Empty<WorkMaster>()" Hover="true" Striped="true" Elevation="2">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Version</MudTh>
+            <MudTh>Duration (min)</MudTh>
+            <MudTh>Description</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Type">@context.WorkType?.Name</MudTd>
+            <MudTd DataLabel="Version">@context.Version</MudTd>
+            <MudTd DataLabel="Duration (min)">@context.Duration</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+        </RowTemplate>
+    </MudTable>
 }
 
 @code {

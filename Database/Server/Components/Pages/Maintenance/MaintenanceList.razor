@@ -6,45 +6,36 @@
 
 <PageTitle>Maintenance</PageTitle>
 
-<h1>Maintenance Job Orders</h1>
+<MudText Typo="Typo.h4" GutterBottom="true">Maintenance Job Orders</MudText>
 
 @if (jobOrders == null)
 {
-    <p><em>Loading...</em></p>
+    <MudProgressCircular Indeterminate="true" />
 }
 else
 {
-    <div class="mb-3">
-        <button class="btn btn-primary" @onclick="LoadJobOrders">Refresh</button>
-    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadJobOrders" Class="mb-4">Refresh</MudButton>
 
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Equipment</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Assigned To</th>
-                <th>Start</th>
-                <th>End</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var order in jobOrders)
-            {
-                <tr>
-                    <td>@order.Name</td>
-                    <td>@order.Equipment?.DisplayName</td>
-                    <td>@order.DispatchStatus?.Name</td>
-                    <td>@order.Priority</td>
-                    <td>@order.AssignedTo?.DisplayName</td>
-                    <td>@order.StartTime?.ToString("g")</td>
-                    <td>@order.EndTime?.ToString("g")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <MudTable Items="jobOrders" Hover="true" Striped="true" Elevation="2">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Equipment</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Priority</MudTh>
+            <MudTh>Assigned To</MudTh>
+            <MudTh>Start</MudTh>
+            <MudTh>End</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Equipment">@context.Equipment?.DisplayName</MudTd>
+            <MudTd DataLabel="Status">@context.DispatchStatus?.Name</MudTd>
+            <MudTd DataLabel="Priority">@context.Priority</MudTd>
+            <MudTd DataLabel="Assigned To">@context.AssignedTo?.DisplayName</MudTd>
+            <MudTd DataLabel="Start">@context.StartTime?.ToString("g")</MudTd>
+            <MudTd DataLabel="End">@context.EndTime?.ToString("g")</MudTd>
+        </RowTemplate>
+    </MudTable>
 }
 
 @code {

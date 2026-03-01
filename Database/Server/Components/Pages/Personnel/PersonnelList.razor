@@ -6,59 +6,43 @@
 
 <PageTitle>Personnel</PageTitle>
 
-<h1>Personnel</h1>
+<MudText Typo="Typo.h4" GutterBottom="true">Personnel</MudText>
 
 @if (persons == null)
 {
-    <p><em>Loading...</em></p>
+    <MudProgressCircular Indeterminate="true" />
 }
 else
 {
-    <div class="mb-3">
-        <button class="btn btn-primary" @onclick="LoadPersonnel">Refresh</button>
-    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadPersonnel" Class="mb-4">Refresh</MudButton>
 
-    <h2>Personnel Classes</h2>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Description</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var pc in personnelClasses ?? Array.Empty<PersonnelClass>())
-            {
-                <tr>
-                    <td>@pc.Name</td>
-                    <td>@pc.Description</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <MudText Typo="Typo.h5" GutterBottom="true">Personnel Classes</MudText>
+    <MudTable Items="personnelClasses ?? Array.Empty<PersonnelClass>()" Hover="true" Striped="true" Elevation="2" Class="mb-6">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Description</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+        </RowTemplate>
+    </MudTable>
 
-    <h2>Persons</h2>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Display Name</th>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th>Roles</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var person in persons)
-            {
-                <tr>
-                    <td>@person.DisplayName</td>
-                    <td>@person.FirstName</td>
-                    <td>@person.LastName</td>
-                    <td>@(person.PersonnelClasses != null ? string.Join(", ", person.PersonnelClasses.Select(c => c.Name)) : "")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <MudText Typo="Typo.h5" GutterBottom="true">Persons</MudText>
+    <MudTable Items="persons" Hover="true" Striped="true" Elevation="2">
+        <HeaderContent>
+            <MudTh>Display Name</MudTh>
+            <MudTh>First Name</MudTh>
+            <MudTh>Last Name</MudTh>
+            <MudTh>Roles</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Display Name">@context.DisplayName</MudTd>
+            <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+            <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+            <MudTd DataLabel="Roles">@(context.PersonnelClasses != null ? string.Join(", ", context.PersonnelClasses.Select(c => c.Name)) : "")</MudTd>
+        </RowTemplate>
+    </MudTable>
 }
 
 @code {

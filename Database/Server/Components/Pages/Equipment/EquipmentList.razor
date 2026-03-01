@@ -6,41 +6,32 @@
 
 <PageTitle>Equipment</PageTitle>
 
-<h1>Equipment Hierarchy</h1>
+<MudText Typo="Typo.h4" GutterBottom="true">Equipment Hierarchy</MudText>
 
 @if (equipment == null)
 {
-    <p><em>Loading...</em></p>
+    <MudProgressCircular Indeterminate="true" />
 }
 else
 {
-    <div class="mb-3">
-        <button class="btn btn-primary" @onclick="LoadEquipment">Refresh</button>
-    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadEquipment" Class="mb-4">Refresh</MudButton>
 
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Level</th>
-                <th>Display Name</th>
-                <th>Classes</th>
-                <th>Physical Asset</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in equipment)
-            {
-                <tr>
-                    <td>@item.Name</td>
-                    <td>@item.EquipmentLevel?.Name</td>
-                    <td>@item.DisplayName</td>
-                    <td>@(item.EquipmentClasses != null ? string.Join(", ", item.EquipmentClasses.Select(c => c.Name)) : "")</td>
-                    <td>@item.PhysicalAsset?.Name</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <MudTable Items="equipment" Hover="true" Striped="true" Elevation="2">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Level</MudTh>
+            <MudTh>Display Name</MudTh>
+            <MudTh>Classes</MudTh>
+            <MudTh>Physical Asset</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Level">@context.EquipmentLevel?.Name</MudTd>
+            <MudTd DataLabel="Display Name">@context.DisplayName</MudTd>
+            <MudTd DataLabel="Classes">@(context.EquipmentClasses != null ? string.Join(", ", context.EquipmentClasses.Select(c => c.Name)) : "")</MudTd>
+            <MudTd DataLabel="Physical Asset">@context.PhysicalAsset?.Name</MudTd>
+        </RowTemplate>
+    </MudTable>
 }
 
 @code {
